@@ -55,10 +55,10 @@ network:
 dataset:
   NUM_CLASSES: 2
   dataset: traffic_sign
-  dataset_path: "../data/traffic_sign"
+  dataset_path: "./data/traffic_sign"
   image_set: train
   # image_set: minival2014
-  root_path: "../data"
+  root_path: "./data"
   test_image_set: test
   proposal: rpn
 TRAIN:

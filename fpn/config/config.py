@@ -29,6 +29,7 @@ config.network = edict()
 config.network.pretrained = ''
 config.network.pretrained_epoch = 0
 config.network.PIXEL_MEANS = np.array([0, 0, 0])
+config.network.INV_STD = 1
 config.network.IMAGE_STRIDE = 0
 config.network.RPN_FEAT_STRIDE = 16
 config.network.RCNN_FEAT_STRIDE = 16
@@ -179,6 +180,8 @@ def update_config(config_file):
                     elif k == 'network':
                         if 'PIXEL_MEANS' in v:
                             v['PIXEL_MEANS'] = np.array(v['PIXEL_MEANS'])
+                        if 'INV_STD' in v:
+                            pass
                     for vk, vv in v.items():
                         config[k][vk] = vv
                 else:

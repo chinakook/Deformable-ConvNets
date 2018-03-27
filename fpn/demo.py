@@ -27,7 +27,7 @@ def det(mod, fn):
     raw_h = img.shape[0]
     raw_w = img.shape[1]
 
-    im_tensor = image.transform(img, [103.06,115.90,123.15])
+    im_tensor = image.transform(img, [124,117,104], 0.0167)
 
     im_info = np.array([[  IMG_H,   IMG_W,   4.18300658e-01]])
 
@@ -38,6 +38,7 @@ def det(mod, fn):
 
     output_names = mod.output_names
     output_tensor = mod.get_outputs()
+    mod.get_outputs()[0].wait_to_read()
     print ("time", time.time()-start, "secs.")
 
     output = dict(zip(output_names ,output_tensor))
@@ -74,13 +75,14 @@ def det(mod, fn):
     cv2.waitKey()
 
 if __name__ == '__main__':
-    sym, arg_params, aux_params = mx.model.load_checkpoint('test',0)
+    sym, arg_params, aux_params = mx.model.load_checkpoint('./test_traffic',0)
 
     mod = mx.mod.Module(symbol=sym, context=mx.gpu(0), data_names=['data', 'im_info'], label_names=None)
     mod.bind(for_training=False, data_shapes=[('data', (1, 3, IMG_H, IMG_W)), ('im_info', (1, 3))], label_shapes=None, force_rebind=False)
     mod.set_params(arg_params=arg_params, aux_params=aux_params, force_init=False)
 
-    testdir = '/mnt/6B133E147DED759E/2016_01_18_07_01_01'
+    #testdir = '/mnt/6B133E147DED759E/2016_01_18_07_01_01'
+    testdir = '/home/dingkou/dev/Deformable-ConvNets/data/traffic_sign/train/JPEGImages'
     files = [i for i in os.listdir(testdir) if i.endswith('.jpg')]
 
     for i,fn in enumerate(files):

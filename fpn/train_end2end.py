@@ -59,6 +59,9 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
     sym_instance = eval(config.symbol + '.' + config.symbol)()
     sym = sym_instance.get_symbol(config, is_train=True)
 
+    #mx.viz.plot_network(sym).view()
+    #exit()
+
     feat_pyramid_level = np.log2(config.network.RPN_FEAT_STRIDE).astype(int)
     feat_sym = [sym.get_internals()['rpn_cls_score_p' + str(x) + '_output'] for x in feat_pyramid_level]
 

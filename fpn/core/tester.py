@@ -210,7 +210,7 @@ def vis_all_detection(im_array, detections, class_names, scale, cfg, threshold=1
     """
     import matplotlib.pyplot as plt
     import random
-    im = image.transform_inverse(im_array, cfg.network.PIXEL_MEANS)
+    im = image.transform_inverse(im_array, cfg.network.PIXEL_MEANS, cfg.network.INV_STD)
     plt.imshow(im)
     for j, name in enumerate(class_names):
         if name == '__background__':
@@ -245,7 +245,7 @@ def draw_all_detection(im_array, detections, class_names, scale, cfg, threshold=
     import cv2
     import random
     color_white = (255, 255, 255)
-    im = image.transform_inverse(im_array, cfg.network.PIXEL_MEANS)
+    im = image.transform_inverse(im_array, cfg.network.PIXEL_MEANS, cfg.network.INV_STD)
     # change to bgr
     im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
     for j, name in enumerate(class_names):

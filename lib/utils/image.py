@@ -31,7 +31,7 @@ def get_image(roidb, config):
         target_size = config.SCALES[scale_ind][0]
         max_size = config.SCALES[scale_ind][1]
         im, im_scale = resize(im, target_size, max_size, stride=config.network.IMAGE_STRIDE)
-        im_tensor = transform(im, config.network.PIXEL_MEANS)
+        im_tensor = transform(im, config.network.PIXEL_MEANS, config.network.INV_STD)
         processed_ims.append(im_tensor)
         im_info = [im_tensor.shape[2], im_tensor.shape[3], im_scale]
         new_rec['boxes'] = clip_boxes(np.round(roi_rec['boxes'].copy() * im_scale), im_info[:2])
@@ -62,7 +62,7 @@ def get_segmentation_image(segdb, config):
         target_size = config.SCALES[scale_ind][0]
         max_size = config.SCALES[scale_ind][1]
         im, im_scale = resize(im, target_size, max_size, stride=config.network.IMAGE_STRIDE)
-        im_tensor = transform(im, config.network.PIXEL_MEANS)
+        im_tensor = transform(im, config.network.PIXEL_MEANS, config.network.INV_STD)
         im_info = [im_tensor.shape[2], im_tensor.shape[3], im_scale]
         new_rec['im_info'] = im_info
 
@@ -107,7 +107,7 @@ def resize(im, target_size, max_size, stride=0, interpolation = cv2.INTER_LINEAR
         padded_im[:im.shape[0], :im.shape[1], :] = im
         return padded_im, im_scale
 
-def transform(im, pixel_means):
+def transform(im, pixel_means, inv_std=1.):
     """
     transform into mxnet tensor
     substract pixel size and transform to correct format
@@ -117,7 +117,7 @@ def transform(im, pixel_means):
     """
     im_tensor = np.zeros((1, 3, im.shape[0], im.shape[1]))
     for i in range(3):
-        im_tensor[0, i, :, :] = im[:, :, 2 - i] - pixel_means[2 - i]
+        im_tensor[0, i, :, :] = inv_std * (im[:, :, 2 - i] - pixel_means[2 - i])
     return im_tensor
 
 def transform_seg_gt(gt):
@@ -131,7 +131,7 @@ def transform_seg_gt(gt):
 
     return gt_tensor
 
-def transform_inverse(im_tensor, pixel_means):
+def transform_inverse(im_tensor, pixel_means, inv_std=1.):
     """
     transform from mxnet im_tensor to ordinary RGB image
     im_tensor is limited to one image
@@ -146,6 +146,7 @@ def transform_inverse(im_tensor, pixel_means):
     im_tensor = im_tensor.transpose(channel_swap)
     im = im_tensor[0]
     assert im.shape[2] == 3
+    im *= (1/inv_std)
     im += pixel_means[[2, 1, 0]]
     im = im.astype(np.uint8)
     return im
