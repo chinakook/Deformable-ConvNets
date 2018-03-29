@@ -27,7 +27,7 @@ def det(mod, fn):
     raw_h = img.shape[0]
     raw_w = img.shape[1]
 
-    im_tensor = image.transform(img, [124,117,104], 0.0167)
+    im_tensor = image.transform(img, [104,117,124], 0.0167)
 
     im_info = np.array([[  IMG_H,   IMG_W,   4.18300658e-01]])
 

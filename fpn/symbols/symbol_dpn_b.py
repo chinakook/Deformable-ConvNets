@@ -36,7 +36,7 @@ def DualPathFactory(data, num_1x1_a, num_3x3_b, num_1x1_c, name, inc, G, _type='
         
     # MAIN
     _, c1x1_a = BN_AC_Conv( data=data_in, num_filter=num_1x1_a,       kernel=( 1,  1), pad=( 0,  0), name=('%s_c1x1-a'   % name))
-    c1x1_bn_ac, c3x3_b = BN_AC_Conv( data=c1x1_a,  num_filter=num_3x3_b,       kernel=(kw, kh), pad=(pw, ph), name=('%s_c%dx%d-b' % (name,kw,kh)), stride=(key_stride,key_stride), num_group=G)
+    _, c3x3_b = BN_AC_Conv( data=c1x1_a,  num_filter=num_3x3_b,       kernel=(kw, kh), pad=(pw, ph), name=('%s_c%dx%d-b' % (name,kw,kh)), stride=(key_stride,key_stride), num_group=G)
     c1x1_c = BN_AC( data=c3x3_b,  name=('%s_c1x1-c'  % name))
     c1x1_c1= Conv(  data=c1x1_c,  num_filter=num_1x1_c, kernel=( 1,  1), name=('%s_c1x1-c1' % name),         pad=( 0,  0))
     c1x1_c2= Conv(  data=c1x1_c,  num_filter=inc,       kernel=( 1,  1), name=('%s_c1x1-c2' % name),         pad=( 0,  0))
@@ -45,6 +45,6 @@ def DualPathFactory(data, num_1x1_a, num_3x3_b, num_1x1_c, name, inc, G, _type='
     summ   = mx.symbol.ElementWiseSum(*[data_o1, c1x1_c1],                        name=('%s_sum' % name))
     dense  = mx.symbol.Concat(        *[data_o2, c1x1_c2],                        name=('%s_cat' % name))
 
-    return [summ, dense, c1x1_bn_ac]
+    return [summ, dense, c1x1_c]
 
 

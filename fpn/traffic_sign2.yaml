@@ -61,14 +61,14 @@ dataset:
   test_image_set: test
   proposal: rpn
 TRAIN:
-  lr: 0.005 # this is for 8 gpus, if you want to use 1 gpus, the lr should be 0.01 / 8
+  lr: 0.02 # this is for 8 gpus, if you want to use 1 gpus, the lr should be 0.01 / 8
   warmup_lr: 0.001
   warmup_step: 250
   warmup: true
-  lr_step: '4,6'
+  lr_step: '5,7'
   wd: 0.0001
   begin_epoch: 0
-  end_epoch: 7
+  end_epoch: 10
   model_prefix: 'fpn_traffic_sign'
   # whether resume training
   RESUME: false
@@ -152,7 +152,7 @@ TEST:
   PROPOSAL_MIN_SIZE: 0
   # RCNN nms
   NMS: 0.3
-  test_epoch: 7
+  test_epoch: 10
   max_per_image: 100
   # soft nms
   USE_SOFTNMS: false

@@ -14,6 +14,12 @@ import os
 import sys
 from config.config import config, update_config
 
+import logging
+
+# set up logger
+logging.basicConfig()
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train Faster-RCNN network')
@@ -89,12 +95,12 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
                                        allowed_border=np.inf)
 
     # infer max shape
-    max_data_shape = [('data', (config.TRAIN.BATCH_IMAGES, 3, max([v[0] for v in config.SCALES]), max([v[1] for v in config.SCALES])))]
+    max_data_shape = [('data', (input_batch_size, 3, max([v[0] for v in config.SCALES]), max([v[1] for v in config.SCALES])))]
     max_data_shape, max_label_shape = train_data.infer_shape(max_data_shape)
-    max_data_shape.append(('gt_boxes', (config.TRAIN.BATCH_IMAGES, 100, 5)))
+    max_data_shape.append(('gt_boxes', (input_batch_size, 100, 5)))
     print 'providing maximum shape', max_data_shape, max_label_shape
 
-    data_shape_dict = dict(train_data.provide_data_single + train_data.provide_label_single)
+    data_shape_dict = dict(train_data.provide_data + train_data.provide_label)
     pprint.pprint(data_shape_dict)
     sym_instance.infer_shape(data_shape_dict)
 
@@ -111,12 +117,12 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
 
     # create solver
     fixed_param_prefix = config.network.FIXED_PARAMS
-    data_names = [k[0] for k in train_data.provide_data_single]
-    label_names = [k[0] for k in train_data.provide_label_single]
+    data_names = [k[0] for k in train_data.provide_data]
+    label_names = [k[0] for k in train_data.provide_label]
 
     mod = MutableModule(sym, data_names=data_names, label_names=label_names,
-                        logger=logger, context=ctx, max_data_shapes=[max_data_shape for _ in range(batch_size)],
-                        max_label_shapes=[max_label_shape for _ in range(batch_size)], fixed_param_prefix=fixed_param_prefix)
+                        logger=logger, context=ctx, max_data_shapes=max_data_shape,
+                        max_label_shapes=max_label_shape, fixed_param_prefix=fixed_param_prefix)
 
     if config.TRAIN.RESUME:
         mod._preload_opt_states = '%s-%04d.states'%(prefix, begin_epoch)
@@ -136,7 +142,7 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
     for child_metric in [rpn_eval_metric, rpn_cls_metric, rpn_bbox_metric, rpn_fg_metric, eval_fg_metric, eval_metric, cls_metric, bbox_metric]:
         eval_metrics.add(child_metric)
     # callback
-    batch_end_callback = callback.Speedometer(train_data.batch_size, frequent=args.frequent)
+    batch_end_callback = mx.callback.Speedometer(train_data.batch_size, frequent=args.frequent)
     means = np.tile(np.array(config.TRAIN.BBOX_MEANS), 2 if config.CLASS_AGNOSTIC else config.dataset.NUM_CLASSES)
     stds = np.tile(np.array(config.TRAIN.BBOX_STDS), 2 if config.CLASS_AGNOSTIC else config.dataset.NUM_CLASSES)
     epoch_end_callback = [mx.callback.module_checkpoint(mod, prefix, period=1, save_optimizer_states=True), callback.do_checkpoint(prefix, means, stds)]

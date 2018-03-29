@@ -95,7 +95,7 @@ if __name__ == '__main__':
     mod.bind(for_training=False, data_shapes=[('data', (1, 3, IMG_H, IMG_W)), ('im_info', (1, 3))], label_shapes=None, force_rebind=False)
     mod.set_params(arg_params=arg_params, aux_params=aux_params, force_init=False)
 
-    testdir = u'/home/dingkou/dev/plates_det/bt'
+    testdir = u'/home/dingkou/dev/plates_det/20131021-31'
     files = [i for i in os.listdir(testdir) if i.endswith('.jpg')]
 
     for i,fn in enumerate(files):

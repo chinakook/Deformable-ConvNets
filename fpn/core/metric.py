@@ -1,10 +1,19 @@
-# --------------------------------------------------------
-# Deformable Convolutional Networks
-# Copyright (c) 2016 by Contributors
-# Copyright (c) 2017 Microsoft
-# Licensed under The Apache-2.0 License [see LICENSE for details]
-# Modified by Yuwen Xiong
-# --------------------------------------------------------
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
 import mxnet as mx
 import numpy as np
@@ -26,7 +35,6 @@ def get_rcnn_names(cfg):
         pred = rpn_pred + pred
         label = rpn_label
     return pred, label
-
 
 class RCNNFGAccuracy(mx.metric.EvalMetric):
     def __init__(self, cfg):
@@ -126,6 +134,32 @@ class RCNNAccMetric(mx.metric.EvalMetric):
         self.sum_metric += np.sum(pred_label.flat == label.flat)
         self.num_inst += len(pred_label.flat)
 
+class RPNLogLossMetric(mx.metric.EvalMetric):
+    def __init__(self):
+        super(RPNLogLossMetric, self).__init__('RPNLogLoss')
+        self.pred, self.label = get_rpn_names()
+
+    def update(self, labels, preds):
+        pred = preds[self.pred.index('rpn_cls_prob')]
+        label = labels[self.label.index('rpn_label')]
+
+        # label (b, p)
+        label = label.asnumpy().astype('int32').reshape((-1))
+        # pred (b, c, p) or (b, c, h, w) --> (b, p, c) --> (b*p, c)
+        pred = pred.asnumpy().reshape((pred.shape[0], pred.shape[1], -1)).transpose((0, 2, 1))
+        pred = pred.reshape((label.shape[0], -1))
+
+        # filter with keep_inds
+        keep_inds = np.where(label != -1)[0]
+        label = label[keep_inds]
+        cls = pred[keep_inds, label]
+
+        cls += 1e-14
+        cls_loss = -1 * np.log(cls)
+        cls_loss = np.sum(cls_loss)
+        self.sum_metric += cls_loss
+        self.num_inst += label.shape[0]
+
 
 class RPNLogLossMetric(mx.metric.EvalMetric):
     def __init__(self):
@@ -191,10 +225,10 @@ class RPNL1LossMetric(mx.metric.EvalMetric):
 
     def update(self, labels, preds):
         bbox_loss = preds[self.pred.index('rpn_bbox_loss')].asnumpy()
+        bbox_weight = labels[self.label.index('rpn_bbox_weight')].asnumpy()
 
-        # calculate num_inst (average on those kept anchors)
-        label = labels[self.label.index('rpn_label')].asnumpy()
-        num_inst = np.sum(label != -1)
+        # calculate num_inst (average on those fg anchors)
+        num_inst = np.sum(bbox_weight > 0) / 4
 
         self.sum_metric += np.sum(bbox_loss)
         self.num_inst += num_inst

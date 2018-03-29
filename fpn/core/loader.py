@@ -1,19 +1,28 @@
-# --------------------------------------------------------
-# Deformable Convolutional Networks
-# Copyright (c) 2016 by Contributors
-# Copyright (c) 2017 Microsoft
-# Licensed under The Apache-2.0 License [see LICENSE for details]
-# Modified by Haozhi Qi
-# --------------------------------------------------------
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
-import numpy as np
 import mxnet as mx
+import numpy as np
 from mxnet.executor_manager import _split_input_slice
 
+from utils.image import tensor_vstack
 from config.config import config
 from rpn.rpn import get_rpn_testbatch, get_rpn_batch, assign_pyramid_anchor
 from rcnn import get_rcnn_testbatch
-
 
 def par_assign_anchor_wrapper(cfg, iroidb, feat_sym, feat_strides, anchor_scales, anchor_ratios, allowed_border):
     # get testing data for multigpu
@@ -29,14 +38,12 @@ def par_assign_anchor_wrapper(cfg, iroidb, feat_sym, feat_strides, anchor_scales
                                   feat_strides, anchor_scales, anchor_ratios, allowed_border)
     return {'data': data, 'label': label}
 
-
 class TestLoader(mx.io.DataIter):
-    def __init__(self, roidb, config, batch_size=1, shuffle=False,
+    def __init__(self, roidb, batch_size=1, shuffle=False,
                  has_rpn=False):
         super(TestLoader, self).__init__()
 
         # save parameters as properties
-        self.cfg = config
         self.roidb = roidb
         self.batch_size = batch_size
         self.shuffle = shuffle
@@ -56,7 +63,7 @@ class TestLoader(mx.io.DataIter):
         # status variable for synchronization between get_data and get_label
         self.cur = 0
         self.data = None
-        self.label = []
+        self.label = None
         self.im_info = None
 
         # get first batch to fill in provide_data and provide_label
@@ -65,18 +72,10 @@ class TestLoader(mx.io.DataIter):
 
     @property
     def provide_data(self):
-        return [[(k, v.shape) for k, v in zip(self.data_name, idata)] for idata in self.data]
+        return [(k, v.shape) for k, v in zip(self.data_name, self.data)]
 
     @property
     def provide_label(self):
-        return [None for _ in range(len(self.data))]
-
-    @property
-    def provide_data_single(self):
-        return [(k, v.shape) for k, v in zip(self.data_name, self.data[0])]
-
-    @property
-    def provide_label_single(self):
         return None
 
     def reset(self):
@@ -85,13 +84,14 @@ class TestLoader(mx.io.DataIter):
             np.random.shuffle(self.index)
 
     def iter_next(self):
-        return self.cur < self.size
+        return self.cur + self.batch_size <= self.size
 
     def next(self):
         if self.iter_next():
             self.get_batch()
             self.cur += self.batch_size
-            return self.im_info, mx.io.DataBatch(data=self.data, label=self.label,
+            return self.im_info, \
+                   mx.io.DataBatch(data=self.data, label=self.label,
                                    pad=self.getpad(), index=self.getindex(),
                                    provide_data=self.provide_data, provide_label=self.provide_label)
         else:
@@ -111,26 +111,11 @@ class TestLoader(mx.io.DataIter):
         cur_to = min(cur_from + self.batch_size, self.size)
         roidb = [self.roidb[self.index[i]] for i in range(cur_from, cur_to)]
         if self.has_rpn:
-            data, label, im_info = get_rpn_testbatch(roidb, self.cfg)
+            data, label, im_info = get_rpn_testbatch(roidb)
         else:
-            data, label, im_info = get_rcnn_testbatch(roidb, self.cfg)
-        self.data = [[mx.nd.array(idata[name]) for name in self.data_name] for idata in data]
-        self.im_info = im_info
-
-    def get_batch_individual(self):
-        cur_from = self.cur
-        cur_to = min(cur_from + self.batch_size, self.size)
-        roidb = [self.roidb[self.index[i]] for i in range(cur_from, cur_to)]
-        if self.has_rpn:
-            data, label, im_info = get_rpn_testbatch(roidb, self.cfg)
-        else:
-            data, label, im_info = get_rcnn_testbatch(roidb, self.cfg)
+            data, label, im_info = get_rcnn_testbatch(roidb)
         self.data = [mx.nd.array(data[name]) for name in self.data_name]
         self.im_info = im_info
-
-
-
-
 
 class PyramidAnchorIterator(mx.io.DataIter):
 
@@ -195,19 +180,19 @@ class PyramidAnchorIterator(mx.io.DataIter):
 
     @property
     def provide_data(self):
-        return [[(k, v.shape) for k, v in zip(self.data_name, self.data[i])] for i in xrange(len(self.data))]
+        return [(k, v.shape) for k, v in zip(self.data_name, self.data)]
 
     @property
     def provide_label(self):
-        return [[(k, v.shape) for k, v in zip(self.label_name, self.label[i])] for i in xrange(len(self.data))]
+        return [(k, v.shape) for k, v in zip(self.label_name, self.label)]
 
-    @property
-    def provide_data_single(self):
-        return [(k, v.shape) for k, v in zip(self.data_name, self.data[0])]
+    # @property
+    # def provide_data_single(self):
+    #     return [(k, v.shape) for k, v in zip(self.data_name, self.data[0])]
 
-    @property
-    def provide_label_single(self):
-        return [(k, v.shape) for k, v in zip(self.label_name, self.label[0])]
+    # @property
+    # def provide_label_single(self):
+    #     return [(k, v.shape) for k, v in zip(self.label_name, self.label[0])]
 
     def reset(self):
         self.cur = 0
@@ -282,13 +267,85 @@ class PyramidAnchorIterator(mx.io.DataIter):
             "Invalid settings for work load. "
         slices = _split_input_slice(self.batch_size, work_load_list)
 
-        rst = []
+        #rst = []
+        data_list = []
+        label_list = []
         for idx, islice in enumerate(slices):
             iroidb = [roidb[i] for i in range(islice.start, islice.stop)]
-            rst.append(par_assign_anchor_wrapper(self.cfg, iroidb, self.feat_sym, self.feat_strides, self.anchor_scales,
-                                                 self.anchor_ratios, self.allowed_border))
+            aaa = par_assign_anchor_wrapper(self.cfg, iroidb, self.feat_sym, self.feat_strides, self.anchor_scales,
+                                                 self.anchor_ratios, self.allowed_border)
+            #rst.append(aaa)
+            data_list.append(aaa['data'])
+            label_list.append(aaa["label"])
 
-        all_data = [_['data'] for _ in rst]
-        all_label = [_['label'] for _ in rst]
-        self.data = [[mx.nd.array(data[key]) for key in self.data_name] for data in all_data]
-        self.label = [[mx.nd.array(label[key]) for key in self.label_name] for label in all_label]
+        all_data = dict()
+        for key in self.data_name:
+            all_data[key] = tensor_vstack([batch[key] for batch in data_list])
+
+        all_label = dict()
+        for key in self.label_name:
+            #pad = -1 if key == 'label' else 0
+            all_label[key] = tensor_vstack([batch[key] for batch in label_list])
+        #all_data = [_['data'] for _ in rst]
+        #all_label = [_['label'] for _ in rst]
+        # self.data = [[mx.nd.array(data[key]) for key in self.data_name] for data in all_data]
+        # self.label = [[mx.nd.array(label[key]) for key in self.label_name] for label in all_label]
+        self.data = [mx.nd.array(all_data[key]) for key in self.data_name]
+        self.label = [mx.nd.array(all_label[key]) for key in self.label_name]
+
+    # def get_batch(self):
+    #     # slice roidb
+    #     cur_from = self.cur
+    #     cur_to = min(cur_from + self.batch_size, self.size)
+    #     roidb = [self.roidb[self.index[i]] for i in range(cur_from, cur_to)]
+
+    #     # decide multi device slice
+    #     work_load_list = self.work_load_list
+    #     ctx = self.ctx
+    #     if work_load_list is None:
+    #         work_load_list = [1] * len(ctx)
+    #     assert isinstance(work_load_list, list) and len(work_load_list) == len(ctx), \
+    #         "Invalid settings for work load. "
+    #     slices = _split_input_slice(self.batch_size, work_load_list)
+
+    #     # get testing data for multigpu
+    #     data_list = []
+    #     label_list = []
+    #     for islice in slices:
+    #         iroidb = [roidb[i] for i in range(islice.start, islice.stop)]
+    #         data, label = get_rpn_batch(iroidb)
+    #         data_list.append(data)
+    #         label_list.append(label)
+
+        # pad data first and then assign anchor (read label)
+        # data_tensor = tensor_vstack([batch['data'] for batch in data_list])
+        # for data, data_pad in zip(data_list, data_tensor):
+        #     data['data'] = data_pad[np.newaxis, :]
+
+        # new_label_list = []
+        # for data, label in zip(data_list, label_list):
+        #     # infer label shape
+        #     data_shape = {k: v.shape for k, v in data.items()}
+        #     del data_shape['im_info']
+        #     _, feat_shape, _ = self.feat_sym.infer_shape(**data_shape)
+        #     feat_shape = [int(i) for i in feat_shape[0]]
+
+        #     # add gt_boxes to data for e2e
+        #     #data['gt_boxes'] = label['gt_boxes'][np.newaxis, :, :]
+
+        #     # assign anchor for label
+        #     label = par_assign_anchor_wrapper(self.cfg, iroidb, self.feat_sym, self.feat_strides, self.anchor_scales,
+        #                                           self.anchor_ratios, self.allowed_border)
+        #     new_label_list.append(label)
+
+        # all_data = dict()
+        # for key in self.data_name:
+        #     all_data[key] = tensor_vstack([batch[key] for batch in data_list])
+
+        # all_label = dict()
+        # for key in self.label_name:
+        #     pad = -1 if key == 'label' else 0
+        #     all_label[key] = tensor_vstack([batch[key] for batch in new_label_list], pad=pad)
+
+        # self.data = [mx.nd.array(all_data[key]) for key in self.data_name]
+        # self.label = [mx.nd.array(all_label[key]) for key in self.label_name]
