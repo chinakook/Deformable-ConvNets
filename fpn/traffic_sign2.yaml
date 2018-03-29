@@ -2,7 +2,7 @@
 MXNET_VERSION: "mxnet"
 output_path: "../output/fpn/coco"
 symbol: dpn_68_fpn_rcnn
-gpus: '0,1,2,3'
+gpus: '0'
 CLASS_AGNOSTIC: false
 SCALES:
 - 1024
@@ -10,15 +10,15 @@ SCALES:
 # TEST_SCALES: [[800, 1280]] # single scale testing
 TEST_SCALES: [[1024,1024]] # multi-scale testing
 default:
-  frequent: 100
+  frequent: 20
   kvstore: device
 network:
   pretrained: "./model/pretrained_model/dpn68-extra"
   pretrained_epoch: 0
   PIXEL_MEANS:
-  - 124
-  - 117
   - 104
+  - 117
+  - 124
   INV_STD: 0.0167
   IMAGE_STRIDE: 32
   RCNN_FEAT_STRIDE: 16
@@ -61,7 +61,7 @@ dataset:
   test_image_set: test
   proposal: rpn
 TRAIN:
-  lr: 0.02 # this is for 8 gpus, if you want to use 1 gpus, the lr should be 0.01 / 8
+  lr: 0.005 # this is for 8 gpus, if you want to use 1 gpus, the lr should be 0.01 / 8
   warmup_lr: 0.001
   warmup_step: 250
   warmup: true
