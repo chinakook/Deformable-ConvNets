@@ -182,6 +182,7 @@ def update_config(config_file):
                             v['PIXEL_MEANS'] = np.array(v['PIXEL_MEANS'])
                         if 'INV_STD' in v:
                             pass
+                            #v['INV_STD'] = np.array(v['INV_STD'])
                     for vk, vv in v.items():
                         config[k][vk] = vv
                 else:

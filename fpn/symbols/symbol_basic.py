@@ -8,7 +8,7 @@ def BK(data):
 # - - - - - - - - - - - - - - - - - - - - - - -
 # Fundamental Elements
 def BN(data, fix_gamma=False, momentum=bn_momentum, name=None):
-    bn     = mx.symbol.BatchNorm( data=data, fix_gamma=fix_gamma, momentum=bn_momentum, name=('%s__bn'%name))
+    bn     = mx.symbol.BatchNorm( data=data, fix_gamma=fix_gamma, momentum=bn_momentum, use_global_stats=True, name=('%s__bn'%name))
     return bn
 
 def AC(data, act_type='relu', name=None):
@@ -47,8 +47,8 @@ def Conv_BN_AC(data, num_filter,  kernel, pad, stride=(1,1), name=None, w=None, 
 # Standard Common functions < ECCV >
 def BN_Conv(   data, num_filter,  kernel, pad, stride=(1,1), name=None, w=None, b=None, no_bias=True, attr=None, num_group=1):
     bn     = BN(     data=data,   name=('%s__bn' % name))
-    bn_cov = Conv(   data=bn,     num_filter=num_filter, num_group=num_group, kernel=kernel, pad=pad, stride=stride, name=name, w=w, b=b, no_bias=no_bias, attr=attr)
-    return bn_cov
+    bn_conv = Conv(   data=bn,     num_filter=num_filter, num_group=num_group, kernel=kernel, pad=pad, stride=stride, name=name, w=w, b=b, no_bias=no_bias, attr=attr)
+    return bn_conv
 
 def AC_Conv(   data, num_filter,  kernel, pad, stride=(1,1), name=None, w=None, b=None, no_bias=True, attr=None, num_group=1):
     ac     = AC(     data=data,   name=('%s__ac' % name))
@@ -57,5 +57,5 @@ def AC_Conv(   data, num_filter,  kernel, pad, stride=(1,1), name=None, w=None, 
 
 def BN_AC_Conv(data, num_filter,  kernel, pad, stride=(1,1), name=None, w=None, b=None, no_bias=True, attr=None, num_group=1):
     bn     = BN(     data=data,   name=('%s__bn' % name))
-    bac, ba_cov = AC_Conv(data=bn,     num_filter=num_filter, num_group=num_group, kernel=kernel, pad=pad, stride=stride, name=name, w=w, b=b, no_bias=no_bias, attr=attr)
-    return bac, ba_cov
+    bac, ba_conv = AC_Conv(data=bn,     num_filter=num_filter, num_group=num_group, kernel=kernel, pad=pad, stride=stride, name=name, w=w, b=b, no_bias=no_bias, attr=attr)
+    return bac, ba_conv

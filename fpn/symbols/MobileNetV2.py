@@ -94,7 +94,7 @@ class MobilenetV2(nn.HybridBlock):
             inp = self.first_oup
             for i, (t, c, n, s) in enumerate(self.interverted_residual_setting):
                 oup = c * self.w
-                self.features.add(InvertedResidualSequence(t, inp, oup, n, s, prefix="seq{}_".format(i+1)))
+                self.features.add(InvertedResidualSequence(t, inp, oup, n, s, prefix="stage{}_".format(i+1)))
                 inp = oup
 
             # self.features.add(Conv1x1(self.last_channels))
@@ -112,8 +112,14 @@ net = MobilenetV2(1000,1, prefix="")
 data =mx.sym.var('data')
 sym = net(data)
 
+from kktools.rf import rf_summery
+rfs = rf_summery(sym)
+for rf in rfs.items():
+    print(rf)
+exit(0)
+
 # plot network graph
 #mx.viz.print_summary(sym, shape={'data':(8,3,224,224)})
 mx.viz.plot_network(sym,shape={'data':(8,3,224,224)}, node_attrs={'shape':'oval','fixedsize':'fasl==false'}).view()
-print(sym.get_internals())
+
 

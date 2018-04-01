@@ -1,7 +1,7 @@
 ---
 MXNET_VERSION: "mxnet"
-output_path: "../output/fpn/plate"
-symbol: resnet_v1_101_fpn_rcnn
+output_path: "./output/fpn/coco"
+symbol: dpn_68_fpn_rcnn
 gpus: '0'
 CLASS_AGNOSTIC: false
 SCALES:
@@ -13,12 +13,13 @@ default:
   frequent: 20
   kvstore: device
 network:
-  pretrained: "./model/pretrained_model/resnet_v1_101"
+  pretrained: "./model/pretrained_model/dpn68-extra"
   pretrained_epoch: 0
   PIXEL_MEANS:
-  - 103.06
-  - 115.90
-  - 123.15
+  - 104
+  - 117
+  - 124
+  INV_STD: 0.0167
   IMAGE_STRIDE: 32
   RCNN_FEAT_STRIDE: 16
   RPN_FEAT_STRIDE:
@@ -29,9 +30,9 @@ network:
   - 64
   FIXED_PARAMS:
   - conv1
-  - bn_conv1
-  - res2
-  - bn2
+  - conv2
+  - conv3_x__1_c1x1-a
+  - conv3_x__1_c3x3-b
   - gamma
   - beta
   FIXED_PARAMS_SHARED:
@@ -54,23 +55,23 @@ network:
   NUM_ANCHORS: 3
 dataset:
   NUM_CLASSES: 2
-  dataset: plates
-  dataset_path: "./data/plates"
+  dataset: traffic_sign
+  dataset_path: "./data/traffic_sign"
   image_set: train
   # image_set: minival2014
   root_path: "./data"
   test_image_set: test
   proposal: rpn
 TRAIN:
-  lr: 0.00125 # this is for 8 gpus, if you want to use 1 gpus, the lr should be 0.01 / 8
+  lr: 0.003 # this is for 8 gpus, if you want to use 1 gpus, the lr should be 0.01 / 8
   warmup_lr: 0.001
   warmup_step: 250
-  warmup: false
+  warmup: true
   lr_step: '4,6'
   wd: 0.0001
   begin_epoch: 0
   end_epoch: 7
-  model_prefix: 'fpn_plates'
+  model_prefix: 'fpn_traffic_sign'
   # whether resume training
   RESUME: false
   # whether flip image

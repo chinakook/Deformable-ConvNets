@@ -15,7 +15,7 @@ from operator_py.box_annotator_ohem import *
 
 from symbol_dpn_b import *
 
-class dpn_68_fpn_rcnn(Symbol):
+class resnet_v2_50_fpn_rcnn(Symbol):
     def __init__(self):
         """
         Use __init__ to define parameter network needs
@@ -26,69 +26,18 @@ class dpn_68_fpn_rcnn(Symbol):
             self.shared_param_dict[name + '_weight'] = mx.sym.Variable(name + '_weight')
             self.shared_param_dict[name + '_bias'] = mx.sym.Variable(name + '_bias')
 
-        self.k_R = 128
+    def get_resnet_backbone(self, data, with_dilated=False, with_dconv=False, with_dpyramid=False, eps=1e-5):
 
-        self.G = 32
+        sym = mx.symbol.load('fpn/symbols/resnet50-symbol.json')
 
-        self.k_sec = {  2: 3,  \
-                    3: 4,  \
-                    4: 12, \
-                    5: 3   }
+        layers = sym.get_internals()
 
-        self.inc_sec = {  2: 16, \
-                    3: 32, \
-                    4: 32, \
-                    5: 64  }
+        c2 = layers["resnetv20_stage2_activation0_output"]
+        c3 = layers["resnetv20_stage3_activation0_output"]
+        c4 = layers["resnetv20_stage4_activation0_output"]
+        c5 = layers["resnetv20_relu1_fwd_output"]
 
-    def get_dpn_backbone(self, data, with_dilated=False, with_dconv=False, with_dpyramid=False, eps=1e-5):
-        # conv1
-        conv1_x_1  = Conv(data=data,  num_filter=10,  kernel=(3, 3), name='conv1_x_1', pad=(1,1), stride=(2,2))
-        conv1_x_1  = BN_AC(conv1_x_1, name='conv1_x_1__relu-sp')
-        conv1_x_x  = mx.symbol.Pooling(data=conv1_x_1, pool_type="max", kernel=(3, 3), pad=(1,1), stride=(2,2), name="pool1")
-
-        # conv2
-        bw = 64
-        inc= self.inc_sec[2]
-        R  = (self.k_R*bw)/64 
-        conv2_x_x  = DualPathFactory(     conv1_x_x,   R,   R,   bw,  'conv2_x__1',           inc,   self.G,  'proj'  )
-        for i_ly in range(2, self.k_sec[2]+1):
-            conv2_x_x  = DualPathFactory( conv2_x_x,   R,   R,   bw, ('conv2_x__%d'% i_ly),   inc,   self.G,  'normal')
-        
-
-        # conv3
-        bw = 128
-        inc= self.inc_sec[3]
-        R  = (self.k_R*bw)/64
-        conv3_x_x  = DualPathFactory(     conv2_x_x,   R,   R,   bw,  'conv3_x__1',           inc,   self.G,  'down'  )
-        c2 = conv3_x_x[2]
-        for i_ly in range(2, self.k_sec[3]+1):
-            conv3_x_x  = DualPathFactory( conv3_x_x,   R,   R,   bw, ('conv3_x__%d'% i_ly),   inc,   self.G,  'normal')
-
-
-        # conv4
-        bw = 256
-        inc= self.inc_sec[4]
-        R  = (self.k_R*bw)/64
-        conv4_x_x  = DualPathFactory(     conv3_x_x,   R,   R,   bw,  'conv4_x__1',           inc,   self.G,  'down'  )
-        c3 = conv4_x_x[2]
-        for i_ly in range(2, self.k_sec[4]+1):
-            conv4_x_x  = DualPathFactory( conv4_x_x,   R,   R,   bw, ('conv4_x__%d'% i_ly),   inc,   self.G,  'normal')
-
-
-        # conv5
-        bw = 512
-        inc= self.inc_sec[5]
-        R  = (self.k_R*bw)/64
-        conv5_x_x  = DualPathFactory(     conv4_x_x,   R,   R,   bw,  'conv5_x__1',           inc,   self.G,  'down'  )
-        c4 = conv5_x_x[2]
-        for i_ly in range(2, self.k_sec[5]+1):
-            conv5_x_x  = DualPathFactory( conv5_x_x,   R,   R,   bw, ('conv5_x__%d'% i_ly),   inc,   self.G,  'normal')
-
-        # output: concat
-        conv5_x_x  = mx.symbol.Concat(*[conv5_x_x[0], conv5_x_x[1]],  name='conv5_x_x_cat-final')
-        conv5_x_x = BN_AC(conv5_x_x, name='conv5_x_x__relu-sp')
-
-        return c2, c3, c4, conv5_x_x
+        return c2, c3, c4, c5
 
     def get_fpn_feature(self, c2, c3, c4, c5, feature_dim=256):
 
@@ -141,7 +90,7 @@ class dpn_68_fpn_rcnn(Symbol):
         im_info = mx.sym.Variable(name="im_info")
 
         # shared convolutional layers
-        res2, res3, res4, res5 = self.get_dpn_backbone(data)
+        res2, res3, res4, res5 = self.get_resnet_backbone(data)
         fpn_p2, fpn_p3, fpn_p4, fpn_p5, fpn_p6 = self.get_fpn_feature(res2, res3, res4, res5)
 
         rpn_cls_score_p2, rpn_prob_p2, rpn_bbox_loss_p2, rpn_bbox_pred_p2 = self.get_rpn_subnet(fpn_p2, cfg.network.NUM_ANCHORS, 'p2')

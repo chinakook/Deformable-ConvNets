@@ -1,3 +1,4 @@
 import resnet_v1_101_fpn_rcnn
 import resnet_v1_101_fpn_dcn_rcnn
 import dpn_68_fpn_rcnn
+import resnet_v2_50_fpn_rcnn
