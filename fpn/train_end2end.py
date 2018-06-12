@@ -62,11 +62,12 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
 
     # load symbol
     shutil.copy2(os.path.join(curr_path, 'symbols', config.symbol + '.py'), final_output_path)
+    pprint.pprint(config.symbol)
     sym_instance = eval(config.symbol + '.' + config.symbol)()
     sym = sym_instance.get_symbol(config, is_train=True)
 
-    #mx.viz.plot_network(sym).view()
-    #exit()
+    # mx.viz.plot_network(sym).view()
+    # exit()
 
     feat_pyramid_level = np.log2(config.network.RPN_FEAT_STRIDE).astype(int)
     feat_sym = [sym.get_internals()['rpn_cls_score_p' + str(x) + '_output'] for x in feat_pyramid_level]
@@ -97,6 +98,7 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
     # infer max shape
     max_data_shape = [('data', (input_batch_size, 3, max([v[0] for v in config.SCALES]), max([v[1] for v in config.SCALES])))]
     max_data_shape, max_label_shape = train_data.infer_shape(max_data_shape)
+ 
     max_data_shape.append(('gt_boxes', (input_batch_size, 100, 5)))
     print 'providing maximum shape', max_data_shape, max_label_shape
 

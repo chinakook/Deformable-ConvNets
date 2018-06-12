@@ -1,6 +1,6 @@
 ---
 MXNET_VERSION: "mxnet"
-output_path: "../output/fpn/plate"
+output_path: "./output/fpn/plate"
 symbol: resnet_v1_101_fpn_rcnn
 gpus: '0'
 CLASS_AGNOSTIC: false

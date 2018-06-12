@@ -804,7 +804,7 @@ class resnet_v1_101_fpn_rcnn(Symbol):
         # n x (2*A) x H x W => n x 2 x (A*H*W)
         rpn_cls_score_t1 = mx.sym.Reshape(data=rpn_cls_score, shape=(0, 2, -1, 0), name='rpn_cls_score_t1_' + suffix)
         rpn_cls_score_t2 = mx.sym.Reshape(data=rpn_cls_score_t1, shape=(0, 2, -1), name='rpn_cls_score_t2_' + suffix)
-        rpn_cls_prob = mx.sym.SoftmaxActivation(data=rpn_cls_score_t1, mode='channel', name='rpn_cls_prob_' + suffix)
+        rpn_cls_prob = mx.sym.softmax(data=rpn_cls_score_t1, axis=1, name='rpn_cls_prob_' + suffix)
         rpn_cls_prob_t = mx.sym.Reshape(data=rpn_cls_prob, shape=(0, 2 * num_anchors, -1, 0), name='rpn_cls_prob_t_' + suffix)
         rpn_bbox_pred_t = mx.sym.Reshape(data=rpn_bbox_pred, shape=(0, 0, -1), name='rpn_bbox_pred_t_' + suffix)
         return rpn_cls_score_t2, rpn_cls_prob_t, rpn_bbox_pred_t, rpn_bbox_pred
@@ -814,7 +814,10 @@ class resnet_v1_101_fpn_rcnn(Symbol):
         # config alias for convenient
         num_classes = cfg.dataset.NUM_CLASSES
         num_reg_classes = (2 if cfg.CLASS_AGNOSTIC else num_classes)
-
+        f = open("num_reg_classes.txt",'w')
+        f.writelines(str(num_classes))
+        f.writelines(str(num_reg_classes))
+        f.close()
         data = mx.sym.Variable(name="data")
         im_info = mx.sym.Variable(name="im_info")
 
@@ -922,7 +925,7 @@ class resnet_v1_101_fpn_rcnn(Symbol):
             # group = mx.sym.Group([rpn_cls_output, rpn_bbox_loss, mx.sym.BlockGrad(cls_prob), mx.sym.BlockGrad(bbox_loss), mx.sym.BlockGrad(rcnn_label)])
             group = mx.sym.Group([rpn_cls_output, rpn_bbox_loss, cls_prob, bbox_loss, mx.sym.BlockGrad(rcnn_label)])
         else:
-            cls_prob = mx.sym.SoftmaxActivation(name='cls_prob', data=cls_score)
+            cls_prob = mx.sym.softmax(name='cls_prob', data=cls_score)
             cls_prob = mx.sym.Reshape(data=cls_prob, shape=(cfg.TEST.BATCH_IMAGES, -1, num_classes), name='cls_prob_reshape')
             bbox_pred = mx.sym.Reshape(data=bbox_pred, shape=(cfg.TEST.BATCH_IMAGES, -1, 4 * num_reg_classes), name='bbox_pred_reshape')
             group = mx.sym.Group([rois, cls_prob, bbox_pred])
