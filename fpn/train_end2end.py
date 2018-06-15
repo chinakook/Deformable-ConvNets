@@ -44,7 +44,7 @@ import numpy as np
 import mxnet as mx
 
 from symbols import *
-from core.loader import PyramidAnchorIterator,TT_PyramidAnchorIterator
+from core.loader import PyramidAnchorIterator
 from core import callback, metric
 from core.module import MutableModule
 from utils.create_logger import create_logger
@@ -90,7 +90,7 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
 
     # load training data
 
-    train_data = TT_PyramidAnchorIterator(feat_sym, roidb, config, batch_size=input_batch_size, shuffle=config.TRAIN.SHUFFLE,
+    train_data = PyramidAnchorIterator(feat_sym, roidb, config, batch_size=input_batch_size, shuffle=config.TRAIN.SHUFFLE,
                                        ctx=ctx, feat_strides=config.network.RPN_FEAT_STRIDE, anchor_scales=config.network.ANCHOR_SCALES,
                                        anchor_ratios=config.network.ANCHOR_RATIOS, aspect_grouping=config.TRAIN.ASPECT_GROUPING,
                                        allowed_border=np.inf)

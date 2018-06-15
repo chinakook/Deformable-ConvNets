@@ -16,6 +16,7 @@ from xml.dom.minidom import parseString
 DST_SIZE = 1024
 IMG_H = DST_SIZE
 IMG_W = DST_SIZE
+
 def write_xml(img_name,height,width,bbox,im_scales):
     node_root = Element('annotation')
     node_folder = SubElement(node_root, 'folder')
@@ -50,6 +51,7 @@ def write_xml(img_name,height,width,bbox,im_scales):
     with open(img_name[:-3]+'xml','w') as f: ## Write document to file
             f.write(xml)
     f.close()
+
 def det(mod, fn):
     raw_img = cv2.imdecode(np.fromfile(fn, dtype=np.uint8),-1)
     h,w = raw_img.shape[0], raw_img.shape[1]

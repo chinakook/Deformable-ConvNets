@@ -77,6 +77,79 @@ def get_segmentation_image(segdb, config):
 
     return processed_ims, processed_seg_cls_gt, processed_segdb
 
+def get_cropped_image(roidb, config):
+    """
+    preprocess image and return processed roidb
+    :param roidb: a list of roidb
+    :return: list of img as in mxnet format
+    roidb add new item['im_info']
+    0 --- x (width, second dim of im)
+    |
+    y (height, first dim of im)
+    """
+    def cal_iou(in_rect,gt_rect):
+        assert (in_rect.shape[0] == gt_rect.shape[0]),"rect_size must be the same"
+        iou_rct = np.empty((0,1),dtype=float)
+        for i in range(in_rect.shape[0]):
+            i_rect = in_rect[i]
+            g_rect = gt_rect[i]
+            iou = float(((i_rect[2] - i_rect[0])*(i_rect[3] - i_rect[1])))/((g_rect[2] - g_rect[0])*(g_rect[3] - g_rect[1]) + 1)
+            iou_rct = np.vstack((iou_rct, [iou]))
+        return iou_rct
+
+    def crop_batch(roidb, config):
+        assert os.path.exists(roidb['image']), '%s does not exist'.format(roidb['image'])
+        im = cv2.imread(roidb['image'], cv2.IMREAD_COLOR) #|cv2.IMREAD_IGNORE_ORIENTATION)
+        size = im.shape
+        width = size[1]
+        height = size[0]
+        if roidb['flipped']:
+            im = im[:, ::-1, :]
+        scale_ind = random.randrange(len(config.SCALES))
+        fix_size = config.SCALES[scale_ind][0]
+        x_max = width- 1 - fix_size
+        y_max = height - 1 - fix_size
+        label = roidb['boxes'].copy()
+        rects = []
+        for j in range(100):
+            x_g = np.random.randint(0,x_max)
+            y_g = np.random.randint(0,y_max)
+            x_y = np.array([x_g,y_g,x_g,y_g])
+            label_g = label - x_y
+            label_g[np.where(label_g<0)] = 0
+            label_g[np.where(label_g>(fix_size-1))] = fix_size-1
+            iou_rct = cal_iou(label_g,label)
+            valid_num =  (iou_rct>0.7).sum()
+            img_sub = im[y_g:y_g+fix_size,x_g:x_g+fix_size,:]
+            if valid_num>0:
+                idx = np.where(iou_rct>0.7)
+                label_sub = label_g[idx[0]]
+                rects.append(label_sub)
+                break
+        return img_sub,np.array(rects)
+
+    num_images = len(roidb)
+    processed_ims = []
+    processed_roidb = []
+    for i in range(num_images):
+        roi_rec = roidb[i]
+        new_rec = roi_rec.copy()
+        im_scale = 1.0
+        im, box = crop_batch(new_rec, config)
+        im_tensor = transform(im, config.network.PIXEL_MEANS, config.network.INV_STD)
+        processed_ims.append(im_tensor)
+        im_info = [im_tensor.shape[2], im_tensor.shape[3], im_scale]
+        new_rec['gt_classes']=[]
+        b_size = (box.size)/4
+        for j in range(b_size):
+            (new_rec['gt_classes']).append(1)
+        new_rec['gt_classes'] = np.array(new_rec['gt_classes'])
+        new_rec['boxes'] = box
+        new_rec['im_info'] = im_info
+        processed_roidb.append(new_rec)
+    return processed_ims, processed_roidb
+
+
 def resize(im, target_size, max_size, stride=0, interpolation = cv2.INTER_LINEAR):
     """
     only resize input image to target size and return scale
@@ -187,72 +260,3 @@ def tensor_vstack(tensor_list, pad=0):
     else:
         raise Exception('Sorry, unimplemented.')
     return all_tensor
-def tt_get_image(roidb, config):
-    """
-    preprocess image and return processed roidb
-    :param roidb: a list of roidb
-    :return: list of img as in mxnet format
-    roidb add new item['im_info']
-    0 --- x (width, second dim of im)
-    |
-    y (height, first dim of im)
-    """    
-    num_images = len(roidb)
-    processed_ims = []
-    processed_roidb = []
-    for i in range(num_images):
-        roi_rec = roidb[i]
-        new_rec = roi_rec.copy()
-        im_scale = 1.0
-        im, box = crop_batch(new_rec, config)
-        im_tensor = transform(im, config.network.PIXEL_MEANS, config.network.INV_STD)
-        processed_ims.append(im_tensor)
-        im_info = [im_tensor.shape[2], im_tensor.shape[3], im_scale]
-        new_rec['gt_classes']=[]
-        b_size = (box.size)/4
-        for j in range(b_size):
-            (new_rec['gt_classes']).append(1)
-        new_rec['gt_classes'] = np.array(new_rec['gt_classes'])
-        new_rec['boxes'] = box
-        new_rec['im_info'] = im_info
-        processed_roidb.append(new_rec)
-    return processed_ims, processed_roidb
-def cal_iou(in_rect,gt_rect):
-    assert (in_rect.shape[0] == gt_rect.shape[0]),"rect_size must be the same"
-    iou_rct = np.empty((0,1),dtype=float)
-    for i in range(in_rect.shape[0]):
-        i_rect = in_rect[i]
-        g_rect = gt_rect[i]
-        iou = float(((i_rect[2] - i_rect[0])*(i_rect[3] - i_rect[1])))/((g_rect[2] - g_rect[0])*(g_rect[3] - g_rect[1]) + 1)
-        iou_rct = np.vstack((iou_rct, [iou]))
-    return iou_rct
-def crop_batch(roidb, config):
-    assert os.path.exists(roidb['image']), '%s does not exist'.format(roidb['image'])
-    im = cv2.imread(roidb['image'], cv2.IMREAD_COLOR) #|cv2.IMREAD_IGNORE_ORIENTATION)
-    size = im.shape
-    width = size[1]
-    height = size[0]
-    if roidb['flipped']:
-        im = im[:, ::-1, :]
-    scale_ind = random.randrange(len(config.SCALES))
-    fix_size = config.SCALES[scale_ind][0]
-    x_max = width- 1 - fix_size
-    y_max = height - 1 - fix_size
-    label = roidb['boxes'].copy()
-    rects = []
-    for j in range(100):
-        x_g = np.random.randint(0,x_max)
-        y_g = np.random.randint(0,y_max)
-        x_y = np.array([x_g,y_g,x_g,y_g])
-        label_g = label - x_y
-        label_g[np.where(label_g<0)] = 0
-        label_g[np.where(label_g>(fix_size-1))] = fix_size-1
-        iou_rct = cal_iou(label_g,label)
-        valid_num =  (iou_rct>0.7).sum()
-        img_sub = im[y_g:y_g+fix_size,x_g:x_g+fix_size,:]
-        if valid_num>0:
-            idx = np.where(iou_rct>0.7)
-            label_sub = label_g[idx[0]]
-            rects.append(label_sub)
-            break
-    return img_sub,np.array(rects)

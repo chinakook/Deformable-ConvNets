@@ -119,6 +119,7 @@ TRAIN:
   RPN_POSITIVE_WEIGHT: -1.0
   # used for end2end training
   # RPN proposal
+  CROP_BATCH: true
   CXX_PROPOSAL: false
   RPN_NMS_THRESH: 0.7
   RPN_PRE_NMS_TOP_N: 12000
