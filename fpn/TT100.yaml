@@ -2,13 +2,13 @@
 MXNET_VERSION: "mxnet"
 output_path: "output/fpn/coco"
 symbol: resnet_v1_101_fpn_rcnn
-gpus: '0'
+gpus: '0,1,2,3'
 CLASS_AGNOSTIC: false
 SCALES:
-- 1024
-- 1024
+- 512
+- 512
 # TEST_SCALES: [[800, 1280]] # single scale testing
-TEST_SCALES: [[1024,1024]] # multi-scale testing
+TEST_SCALES: [[512,512]] # multi-scale testing
 default:
   frequent: 100
   kvstore: device
@@ -54,9 +54,9 @@ network:
   NUM_ANCHORS: 3
 dataset:
   NUM_CLASSES: 2
-  dataset: traffic_sign
-  dataset_path: "./data/traffic_sign"  
-  #dataset_path: "/mnt/15F1B72E1A7798FD/Dataset/Tsinghua_Tencent_100K/data"
+  dataset: TT100
+  #dataset_path: "./data/traffic_sign"  
+  dataset_path: "/mnt/15F1B72E1A7798FD/Dataset/Tsinghua_Tencent_100K/data"
   image_set: train
   # image_set: minival2014
   root_path: "./data"
@@ -71,7 +71,7 @@ TRAIN:
   wd: 0.0001
   begin_epoch: 0
   end_epoch: 7
-  model_prefix: 'fpn_traffic_sign'
+  model_prefix: 'fpn_TT100'
   # whether resume training
   RESUME: false
   # whether flip image
@@ -119,6 +119,7 @@ TRAIN:
   RPN_POSITIVE_WEIGHT: -1.0
   # used for end2end training
   # RPN proposal
+  CROP_BATCH: true
   CXX_PROPOSAL: false
   RPN_NMS_THRESH: 0.7
   RPN_PRE_NMS_TOP_N: 12000

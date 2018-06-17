@@ -64,7 +64,7 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
     shutil.copy2(os.path.join(curr_path, 'symbols', config.symbol + '.py'), final_output_path)
     pprint.pprint(config.symbol)
     sym_instance = eval(config.symbol + '.' + config.symbol)()
-    sym = sym_instance.get_symbol(config, is_train=True)
+    sym = sym_instance.get_symbol_rpn(config, is_train=True)
 
     # mx.viz.plot_network(sym).view()
     # exit()
@@ -99,8 +99,8 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
     max_data_shape = [('data', (input_batch_size, 3, max([v[0] for v in config.SCALES]), max([v[1] for v in config.SCALES])))]
     max_data_shape, max_label_shape = train_data.infer_shape(max_data_shape)
  
-    max_data_shape.append(('gt_boxes', (input_batch_size, 100, 5)))
-    print 'providing maximum shape', max_data_shape, max_label_shape
+    # max_data_shape.append(('gt_boxes', (input_batch_size, 100, 5)))
+    # print 'providing maximum shape', max_data_shape, max_label_shape
 
     data_shape_dict = dict(train_data.provide_data + train_data.provide_label)
     pprint.pprint(data_shape_dict)
@@ -112,7 +112,7 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
         arg_params, aux_params = load_param(prefix, begin_epoch, convert=True)
     else:
         arg_params, aux_params = load_param(pretrained, epoch, convert=True)
-        sym_instance.init_weight(config, arg_params, aux_params)
+        sym_instance.init_weight(config, arg_params, aux_params, with_rcnn=False)
 
     # check parameter shapes
     sym_instance.check_parameter_shapes(arg_params, aux_params, data_shape_dict)
@@ -135,19 +135,15 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
     rpn_cls_metric = metric.RPNLogLossMetric()
     rpn_bbox_metric = metric.RPNL1LossMetric()
     rpn_fg_metric = metric.RPNFGFraction(config)
-    eval_metric = metric.RCNNAccMetric(config)
-    eval_fg_metric = metric.RCNNFGAccuracy(config)
-    cls_metric = metric.RCNNLogLossMetric(config)
-    bbox_metric = metric.RCNNL1LossMetric(config)
     eval_metrics = mx.metric.CompositeEvalMetric()
     # rpn_eval_metric, rpn_cls_metric, rpn_bbox_metric, eval_metric, cls_metric, bbox_metric
-    for child_metric in [rpn_eval_metric, rpn_cls_metric, rpn_bbox_metric, rpn_fg_metric, eval_fg_metric, eval_metric, cls_metric, bbox_metric]:
+    for child_metric in [rpn_eval_metric, rpn_cls_metric, rpn_bbox_metric, rpn_fg_metric]:
         eval_metrics.add(child_metric)
     # callback
     batch_end_callback = mx.callback.Speedometer(train_data.batch_size, frequent=args.frequent)
-    means = np.tile(np.array(config.TRAIN.BBOX_MEANS), 2 if config.CLASS_AGNOSTIC else config.dataset.NUM_CLASSES)
-    stds = np.tile(np.array(config.TRAIN.BBOX_STDS), 2 if config.CLASS_AGNOSTIC else config.dataset.NUM_CLASSES)
-    epoch_end_callback = [mx.callback.module_checkpoint(mod, prefix, period=1, save_optimizer_states=True), callback.do_checkpoint(prefix, means, stds)]
+    #means = np.tile(np.array(config.TRAIN.BBOX_MEANS), 2 if config.CLASS_AGNOSTIC else config.dataset.NUM_CLASSES)
+    #stds = np.tile(np.array(config.TRAIN.BBOX_STDS), 2 if config.CLASS_AGNOSTIC else config.dataset.NUM_CLASSES)
+    epoch_end_callback = [mx.callback.module_checkpoint(mod, prefix, period=1, save_optimizer_states=True)] #, callback.do_checkpoint(prefix, means, stds)]
     # decide learning rate
     base_lr = lr
     lr_factor = config.TRAIN.lr_factor

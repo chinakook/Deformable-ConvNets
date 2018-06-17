@@ -123,6 +123,8 @@ config.TRAIN.RPN_CLOBBER_POSITIVES = False
 config.TRAIN.RPN_BBOX_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
 config.TRAIN.RPN_POSITIVE_WEIGHT = -1.0
 
+config.TRAIN.CROP_BATCH = False
+
 # used for end2end training
 # RPN proposal
 config.TRAIN.CXX_PROPOSAL = True

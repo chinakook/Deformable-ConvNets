@@ -15,6 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Deploy a Faster R-CNN network')
     # general
     parser.add_argument('--cfg', help='experiment configure file name', required=True, type=str)
+    parser.add_argument('--rpn', help='deploy rpn only', default=0, type=bool)
 
     args, rest = parser.parse_known_args()
     update_config(args.cfg)
@@ -26,16 +27,18 @@ def main():
     args = parse_args()
     pprint.pprint(config)
 
-    if config.TEST.HAS_RPN:
-        sym_instance = eval(config.symbol + '.' + config.symbol)()
-        sym = sym_instance.get_symbol(config, is_train=False)
+    sym_instance = eval(config.symbol + '.' + config.symbol)()
+    if args.rpn:
+        sym = sym_instance.get_symbol_rpn(config, is_train=False)
     else:
-        sym_instance = eval(config.symbol + '.' + config.symbol)()
-        sym = sym_instance.get_symbol_rcnn(config, is_train=False)
+        if config.TEST.HAS_RPN:
+            sym = sym_instance.get_symbol(config, is_train=False)
+        else:
+            sym = sym_instance.get_symbol_rcnn(config, is_train=False)
 
 
-    dotgraph = mx.viz.plot_network(sym, shape={'data' : (1,3,224,224), 'im_info' : (1,3)}, save_format='png')
-    dotgraph.render(config.symbol)
+    #dotgraph = mx.viz.plot_network(sym, shape={'data' : (1,3,224,224), 'im_info' : (1,3)}, save_format='png')
+    #dotgraph.render(config.symbol)
 
     # from kktools.rf import rf_summery
     # rfs = rf_summery(sym)

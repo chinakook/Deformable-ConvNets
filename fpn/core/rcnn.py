@@ -21,7 +21,7 @@ roidb extended format [image_index]
 
 import numpy as np
 import numpy.random as npr
-
+import pprint
 from utils.image import get_image, tensor_vstack
 from bbox.bbox_transform import bbox_overlaps, bbox_transform
 from bbox.bbox_regression import expand_bbox_regression_targets
@@ -80,7 +80,6 @@ def get_rcnn_batch(roidb, cfg):
 
         # infer num_classes from gt_overlaps
         num_classes = roi_rec['gt_overlaps'].shape[1]
-
         # label = class RoI has max overlap with
         rois = roi_rec['boxes']
         labels = roi_rec['max_classes']
@@ -178,7 +177,10 @@ def sample_rois(rois, fg_rois_per_image, rois_per_image, num_classes, cfg,
             targets = ((targets - np.array(cfg.TRAIN.BBOX_MEANS))
                        / np.array(cfg.TRAIN.BBOX_STDS))
         bbox_target_data = np.hstack((labels[:, np.newaxis], targets))
-
+    np.savetxt("bbox_target_data.txt",bbox_target_data)
+    f = open("num_class.txt",'w')
+    f.writelines(str(num_classes))
+    f.close()
     bbox_targets, bbox_weights = \
         expand_bbox_regression_targets(bbox_target_data, num_classes, cfg)
 
