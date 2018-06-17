@@ -54,7 +54,7 @@ def main():
     mod.bind(for_training=False, data_shapes=[('data', (1, 3, 1024, 1024)), ('im_info', (1, 3))], label_shapes=None, force_rebind=False)
     mod.set_params(arg_params=arg_params, aux_params=aux_params, force_init=False)
 
-    mod.save_checkpoint('test_traffic',0)
+    mod.save_checkpoint('test_plate',0)
 
 if __name__ == '__main__':
     main()

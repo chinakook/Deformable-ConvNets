@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*- 
 import _init_paths
 
 import os
@@ -76,7 +77,7 @@ def det(mod, fn):
     cv2.waitKey()
 
 if __name__ == '__main__':
-    sym, arg_params, aux_params = mx.model.load_checkpoint('fpn/test_traffic',0)
+    sym, arg_params, aux_params = mx.model.load_checkpoint('test_plate',0)
 
 
     mod = mx.mod.Module(symbol=sym, context=mx.gpu(0), data_names=['data', 'im_info'], label_names=None)
@@ -84,7 +85,8 @@ if __name__ == '__main__':
     mod.set_params(arg_params=arg_params, aux_params=aux_params, force_init=False)
 
     #testdir = '/mnt/6B133E147DED759E/2016_01_18_07_01_01'
-    testdir = '/home/kk/dev/dcn/data/traffic_sign/train/JPEGImages'
+    #testdir = '/home/kk/dev/dcn/data/traffic_sign/train/JPEGImages'
+    testdir = '/media/kk/WORK/proj/dev/veh/veh/data0'
     files = [i for i in os.listdir(testdir) if i.endswith('.jpg')]
 
     for i,fn in enumerate(files):
