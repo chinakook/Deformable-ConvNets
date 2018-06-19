@@ -1,7 +1,7 @@
 ---
 MXNET_VERSION: "mxnet"
-output_path: "../output/fpn/plate"
-symbol: resnet_v2_50_fpn_rcnn
+output_path: "../output/fpn/plate_dpn"
+symbol: dpn_68_fpn_rcnn
 gpus: '0'
 CLASS_AGNOSTIC: false
 SCALES:
@@ -13,17 +13,13 @@ default:
   frequent: 20
   kvstore: device
 network:
-  pretrained: "./model/pretrained_model/resnet50"
+  pretrained: "./model/pretrained_model/dpn68-extra"
   pretrained_epoch: 0
   PIXEL_MEANS:
-  - 103.53
-  - 116.28
-  - 123.675
-  INV_STD:
-  - 0.017
-  #- 0.01742919
-  #- 0.017507
-  #- 0.01712475
+  - 104
+  - 117
+  - 124
+  INV_STD: 0.0167
   IMAGE_STRIDE: 32
   RCNN_FEAT_STRIDE: 16
   RPN_FEAT_STRIDE:
@@ -33,11 +29,10 @@ network:
   - 32
   - 64
   FIXED_PARAMS:
-  - resnetv20_conv0
-  - resnetv20_batchnorm0
-  - resnetv20_batchnorm1
-  - resnetv20_stage1
-  - resnetv20_stage2_batchnorm0
+  - conv1
+  - conv2
+  - conv3_x__1_c1x1-a
+  - conv3_x__1_c3x3-b
   - gamma
   - beta
   FIXED_PARAMS_SHARED:
@@ -68,7 +63,7 @@ dataset:
   test_image_set: test
   proposal: rpn
 TRAIN:
-  lr: 0.00125 # this is for 8 gpus, if you want to use 1 gpus, the lr should be 0.01 / 8
+  lr: 0.001 # this is for 8 gpus, if you want to use 1 gpus, the lr should be 0.01 / 8
   warmup_lr: 0.001
   warmup_step: 250
   warmup: true

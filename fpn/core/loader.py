@@ -186,14 +186,6 @@ class PyramidAnchorIterator(mx.io.DataIter):
     def provide_label(self):
         return [(k, v.shape) for k, v in zip(self.label_name, self.label)]
 
-    # @property
-    # def provide_data_single(self):
-    #     return [(k, v.shape) for k, v in zip(self.data_name, self.data[0])]
-
-    # @property
-    # def provide_label_single(self):
-    #     return [(k, v.shape) for k, v in zip(self.label_name, self.label[0])]
-
     def reset(self):
         self.cur = 0
         if self.shuffle:
@@ -292,60 +284,3 @@ class PyramidAnchorIterator(mx.io.DataIter):
         # self.label = [[mx.nd.array(label[key]) for key in self.label_name] for label in all_label]
         self.data = [mx.nd.array(all_data[key]) for key in self.data_name]
         self.label = [mx.nd.array(all_label[key]) for key in self.label_name]
-
-    # def get_batch(self):
-    #     # slice roidb
-    #     cur_from = self.cur
-    #     cur_to = min(cur_from + self.batch_size, self.size)
-    #     roidb = [self.roidb[self.index[i]] for i in range(cur_from, cur_to)]
-
-    #     # decide multi device slice
-    #     work_load_list = self.work_load_list
-    #     ctx = self.ctx
-    #     if work_load_list is None:
-    #         work_load_list = [1] * len(ctx)
-    #     assert isinstance(work_load_list, list) and len(work_load_list) == len(ctx), \
-    #         "Invalid settings for work load. "
-    #     slices = _split_input_slice(self.batch_size, work_load_list)
-
-    #     # get testing data for multigpu
-    #     data_list = []
-    #     label_list = []
-    #     for islice in slices:
-    #         iroidb = [roidb[i] for i in range(islice.start, islice.stop)]
-    #         data, label = get_rpn_batch(iroidb)
-    #         data_list.append(data)
-    #         label_list.append(label)
-
-        # pad data first and then assign anchor (read label)
-        # data_tensor = tensor_vstack([batch['data'] for batch in data_list])
-        # for data, data_pad in zip(data_list, data_tensor):
-        #     data['data'] = data_pad[np.newaxis, :]
-
-        # new_label_list = []
-        # for data, label in zip(data_list, label_list):
-        #     # infer label shape
-        #     data_shape = {k: v.shape for k, v in data.items()}
-        #     del data_shape['im_info']
-        #     _, feat_shape, _ = self.feat_sym.infer_shape(**data_shape)
-        #     feat_shape = [int(i) for i in feat_shape[0]]
-
-        #     # add gt_boxes to data for e2e
-        #     #data['gt_boxes'] = label['gt_boxes'][np.newaxis, :, :]
-
-        #     # assign anchor for label
-        #     label = par_assign_anchor_wrapper(self.cfg, iroidb, self.feat_sym, self.feat_strides, self.anchor_scales,
-        #                                           self.anchor_ratios, self.allowed_border)
-        #     new_label_list.append(label)
-
-        # all_data = dict()
-        # for key in self.data_name:
-        #     all_data[key] = tensor_vstack([batch[key] for batch in data_list])
-
-        # all_label = dict()
-        # for key in self.label_name:
-        #     pad = -1 if key == 'label' else 0
-        #     all_label[key] = tensor_vstack([batch[key] for batch in new_label_list], pad=pad)
-
-        # self.data = [mx.nd.array(all_data[key]) for key in self.data_name]
-        # self.label = [mx.nd.array(all_label[key]) for key in self.label_name]

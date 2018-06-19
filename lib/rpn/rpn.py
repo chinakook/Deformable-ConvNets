@@ -51,7 +51,7 @@ def get_rpn_batch(roidb, cfg):
     :return: data, label
     """
     assert len(roidb) == 1, 'Single batch only'
-    if TRAIN.CROP_BATCH:
+    if cfg.TRAIN.CROP_BATCH:
         imgs, roidb = get_cropped_image(roidb, cfg)
     else:
         imgs, roidb = get_image(roidb, cfg)

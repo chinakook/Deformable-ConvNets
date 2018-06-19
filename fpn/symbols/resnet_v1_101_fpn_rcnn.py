@@ -809,6 +809,67 @@ class resnet_v1_101_fpn_rcnn(Symbol):
         rpn_bbox_pred_t = mx.sym.Reshape(data=rpn_bbox_pred, shape=(0, 0, -1), name='rpn_bbox_pred_t_' + suffix)
         return rpn_cls_score_t2, rpn_cls_prob_t, rpn_bbox_pred_t, rpn_bbox_pred
 
+    def get_symbol_rpn(self, cfg, is_train=True):
+
+        data = mx.sym.Variable(name="data")
+
+        # shared convolutional layers
+        res2, res3, res4, res5 = self.get_resnet_backbone(data)
+        fpn_p2, fpn_p3, fpn_p4, fpn_p5, fpn_p6 = self.get_fpn_feature(res2, res3, res4, res5)
+
+        rpn_cls_score_p2, rpn_prob_p2, rpn_bbox_loss_p2, rpn_bbox_pred_p2 = self.get_rpn_subnet(fpn_p2, cfg.network.NUM_ANCHORS, 'p2')
+        rpn_cls_score_p3, rpn_prob_p3, rpn_bbox_loss_p3, rpn_bbox_pred_p3 = self.get_rpn_subnet(fpn_p3, cfg.network.NUM_ANCHORS, 'p3')
+        rpn_cls_score_p4, rpn_prob_p4, rpn_bbox_loss_p4, rpn_bbox_pred_p4 = self.get_rpn_subnet(fpn_p4, cfg.network.NUM_ANCHORS, 'p4')
+        rpn_cls_score_p5, rpn_prob_p5, rpn_bbox_loss_p5, rpn_bbox_pred_p5 = self.get_rpn_subnet(fpn_p5, cfg.network.NUM_ANCHORS, 'p5')
+        rpn_cls_score_p6, rpn_prob_p6, rpn_bbox_loss_p6, rpn_bbox_pred_p6 = self.get_rpn_subnet(fpn_p6, cfg.network.NUM_ANCHORS, 'p6')
+
+        if is_train:
+            rpn_label = mx.sym.Variable(name='label')
+            rpn_bbox_target = mx.sym.Variable(name='bbox_target')
+            rpn_bbox_weight = mx.sym.Variable(name='bbox_weight')
+
+            rpn_cls_score = mx.sym.Concat(rpn_cls_score_p2, rpn_cls_score_p3, rpn_cls_score_p4, rpn_cls_score_p5, rpn_cls_score_p6, dim=2)
+            rpn_bbox_loss = mx.sym.Concat(rpn_bbox_loss_p2, rpn_bbox_loss_p3, rpn_bbox_loss_p4, rpn_bbox_loss_p5, rpn_bbox_loss_p6, dim=2)
+            # RPN classification loss
+            rpn_cls_output = mx.sym.SoftmaxOutput(data=rpn_cls_score, label=rpn_label, multi_output=True, normalization='valid',
+                                                  use_ignore=True, ignore_label=-1, name='rpn_cls_prob')
+            # bounding box regression
+            rpn_bbox_loss = rpn_bbox_weight * mx.sym.smooth_l1(name='rpn_bbox_loss_l1', scalar=3.0, data=(rpn_bbox_loss - rpn_bbox_target))
+            rpn_bbox_loss = mx.sym.MakeLoss(name='rpn_bbox_loss', data=rpn_bbox_loss, grad_scale=1.0 / cfg.TRAIN.RPN_BATCH_SIZE)
+
+            group = mx.sym.Group([rpn_cls_output, rpn_bbox_loss])
+        else:
+            im_info = mx.sym.Variable(name="im_info")
+            rpn_cls_prob_dict = {
+                'rpn_cls_prob_stride64': rpn_prob_p6,
+                'rpn_cls_prob_stride32': rpn_prob_p5,
+                'rpn_cls_prob_stride16': rpn_prob_p4,
+                'rpn_cls_prob_stride8': rpn_prob_p3,
+                'rpn_cls_prob_stride4': rpn_prob_p2,
+            }
+            rpn_bbox_pred_dict = {
+                'rpn_bbox_pred_stride64': rpn_bbox_pred_p6,
+                'rpn_bbox_pred_stride32': rpn_bbox_pred_p5,
+                'rpn_bbox_pred_stride16': rpn_bbox_pred_p4,
+                'rpn_bbox_pred_stride8': rpn_bbox_pred_p3,
+                'rpn_bbox_pred_stride4': rpn_bbox_pred_p2,
+            }
+            arg_dict = dict(rpn_cls_prob_dict.items() + rpn_bbox_pred_dict.items())
+            aux_dict = {
+                'op_type': 'pyramid_proposal', 'name': 'rois',
+                'im_info': im_info, 'feat_stride': tuple(cfg.network.RPN_FEAT_STRIDE),
+                'scales': tuple(cfg.network.ANCHOR_SCALES), 'ratios': tuple(cfg.network.ANCHOR_RATIOS),
+                'output_score': 'True',
+                'rpn_pre_nms_top_n': cfg.TEST.RPN_PRE_NMS_TOP_N, 'rpn_post_nms_top_n': cfg.TEST.RPN_POST_NMS_TOP_N,
+                'threshold': cfg.TEST.RPN_NMS_THRESH, 'rpn_min_size': cfg.TEST.RPN_MIN_SIZE
+            }
+            # ROI proposal
+            rois = mx.sym.Custom(**dict(arg_dict.items() + aux_dict.items()))
+            group = rois
+
+        self.sym = group
+        return group
+
     def get_symbol(self, cfg, is_train=True):
 
         # config alias for convenient
@@ -964,9 +1025,10 @@ class resnet_v1_101_fpn_rcnn(Symbol):
         arg_params['fpn_p2_1x1_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['fpn_p2_1x1_weight'])
         arg_params['fpn_p2_1x1_bias'] = mx.nd.zeros(shape=self.arg_shape_dict['fpn_p2_1x1_bias'])
 
-    def init_weight(self, cfg, arg_params, aux_params):
+    def init_weight(self, cfg, arg_params, aux_params, with_rcnn=True):
         for name in self.shared_param_list:
             arg_params[name + '_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict[name + '_weight'])
             arg_params[name + '_bias'] = mx.nd.zeros(shape=self.arg_shape_dict[name + '_bias'])
-        self.init_weight_rcnn(cfg, arg_params, aux_params)
+        if with_rcnn:
+            self.init_weight_rcnn(cfg, arg_params, aux_params)
         self.init_weight_fpn(cfg, arg_params, aux_params)
