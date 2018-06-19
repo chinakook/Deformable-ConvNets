@@ -126,7 +126,7 @@ def get_cropped_image(roidb, config):
                 label_sub = label_g[idx[0]]
                 rects = label_sub
                 break
-        return img_sub,rects
+        return img_sub,np.array(rects)
 
     num_images = len(roidb)
     processed_ims = []
