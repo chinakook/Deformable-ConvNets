@@ -89,13 +89,13 @@ def get_cropped_image(roidb, config):
     """
     def cal_iou(in_rect,gt_rect):
         assert (in_rect.shape[0] == gt_rect.shape[0]),"rect_size must be the same"
-        iou_rct = np.empty((0,1),dtype=float)
+        iou_rct =  []
         for i in range(in_rect.shape[0]):
             i_rect = in_rect[i]
             g_rect = gt_rect[i]
             iou = float(((i_rect[2] - i_rect[0])*(i_rect[3] - i_rect[1])))/((g_rect[2] - g_rect[0])*(g_rect[3] - g_rect[1]) + 1)
-            iou_rct = np.vstack((iou_rct, [iou]))
-        return iou_rct
+            iou_rct.append(iou)
+        return np.array(iou_rct)
 
     def crop_batch(roidb, config):
         assert os.path.exists(roidb['image']), '%s does not exist'.format(roidb['image'])
@@ -110,7 +110,7 @@ def get_cropped_image(roidb, config):
         x_max = width- 1 - fix_size
         y_max = height - 1 - fix_size
         label = roidb['boxes'].copy()
-        rects = []
+        rects=[]
         for j in range(100):
             x_g = np.random.randint(0,x_max)
             y_g = np.random.randint(0,y_max)
@@ -124,9 +124,9 @@ def get_cropped_image(roidb, config):
             if valid_num>0:
                 idx = np.where(iou_rct>0.7)
                 label_sub = label_g[idx[0]]
-                rects.append(label_sub)
+                rects = label_sub
                 break
-        return img_sub,np.array(rects)
+        return img_sub,rects
 
     num_images = len(roidb)
     processed_ims = []
