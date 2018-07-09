@@ -32,8 +32,7 @@ class plates(IMDB):
         self.devkit_path = devkit_path
         self.data_path =  os.path.join(devkit_path,image_set)
         #CHANGED sign--> plate
-        self.classes = ['__background__',  # always index 0
-                        'plate']
+        self.classes = ['__background__', 'plate', 'other_plate', 'others']
         self.num_classes = len(self.classes)
         self.image_set_index = self.load_image_set_index()
         self.num_images = len(self.image_set_index)

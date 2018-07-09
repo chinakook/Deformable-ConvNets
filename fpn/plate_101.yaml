@@ -3,7 +3,7 @@ MXNET_VERSION: "mxnet"
 output_path: "output/fpn/coco"
 symbol: resnet_v1_101_fpn_rcnn
 gpus: '0,1,2,3'
-CLASS_AGNOSTIC: false
+CLASS_AGNOSTIC: true
 SCALES:
 - 512
 - 512
@@ -54,9 +54,8 @@ network:
   NUM_ANCHORS: 3
 dataset:
   NUM_CLASSES: 2
-  dataset: TT100
-  #dataset_path: "./data/traffic_sign"  
-  dataset_path: "/mnt/15F1B72E1A7798FD/Dataset/traffic_sign"
+  dataset: plates
+  dataset_path: "/home/dingkou/dev/Deformable-ConvNets/data/plates"
   image_set: train
   # image_set: minival2014
   root_path: "./data"
@@ -71,7 +70,7 @@ TRAIN:
   wd: 0.0001
   begin_epoch: 0
   end_epoch: 7
-  model_prefix: 'fpn_TT100'
+  model_prefix: 'fpn_plate'
   # whether resume training
   RESUME: false
   # whether flip image

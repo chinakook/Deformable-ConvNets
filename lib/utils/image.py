@@ -107,13 +107,14 @@ def get_cropped_image(roidb, config):
             im = im[:, ::-1, :]
         scale_ind = random.randrange(len(config.SCALES))
         fix_size = config.SCALES[scale_ind][0]
-        x_max = width- 1 - fix_size
-        y_max = height - 1 - fix_size
+        x_max = width - fix_size
+        y_max = height  - fix_size
         label = roidb['boxes'].copy()
+        label = label.astype(np.int64)
         rects=[]
         for j in range(100):
-            x_g = np.random.randint(0,x_max)
-            y_g = np.random.randint(0,y_max)
+            x_g = 0 if x_max == 0 else np.random.randint(0,x_max)
+            y_g = 0 if y_max == 0 else np.random.randint(0,y_max)
             x_y = np.array([x_g,y_g,x_g,y_g])
             label_g = label - x_y
             label_g[np.where(label_g<0)] = 0
