@@ -100,19 +100,41 @@ def get_cropped_image(roidb, config):
     def crop_batch(roidb, config):
         assert os.path.exists(roidb['image']), '%s does not exist'.format(roidb['image'])
         im = cv2.imread(roidb['image'], cv2.IMREAD_COLOR) #|cv2.IMREAD_IGNORE_ORIENTATION)
+        if roidb['flipped']:
+            im = im[:, ::-1, :]
+        label = roidb['boxes'].copy()
+
+        scale_ind = random.randrange(len(config.SCALES))
+        fix_size = config.SCALES[scale_ind][0]
+
+        zoom = random.choice([0.5, 1, 2.0])
+        if zoom < 1 or zoom > 1:
+            im = cv2.resize(im,None,fx=zoom,fy=zoom,interpolation=cv2.INTER_CUBIC)
+
+            pad_b = 0
+            pad_r = 0
+            nh, nw = im.shape[0], im.shape[1]
+            if nh < fix_size:
+                pad_b = fix_size - nh
+                nh = fix_size
+            if nw < fix_size:
+                pad_r = fix_size - nw
+                nw = fix_size
+
+            im = cv2.copyMakeBorder(im, 0, pad_b, 0, pad_r, cv2.BORDER_CONSTANT, None, (127,127,127))
+
+            label = label * zoom
+
         size = im.shape
         width = size[1]
         height = size[0]
-        if roidb['flipped']:
-            im = im[:, ::-1, :]
-        scale_ind = random.randrange(len(config.SCALES))
-        fix_size = config.SCALES[scale_ind][0]
+
         x_max = width - fix_size
         y_max = height  - fix_size
-        label = roidb['boxes'].copy()
         label = label.astype(np.int64)
         rects=[]
         for j in range(100):
+
             x_g = 0 if x_max == 0 else np.random.randint(0,x_max)
             y_g = 0 if y_max == 0 else np.random.randint(0,y_max)
             x_y = np.array([x_g,y_g,x_g,y_g])

@@ -74,7 +74,7 @@ def det(mod, fn, use_rpn_only=False):
     batch = mx.io.DataBatch([mx.nd.array(im_tensor), mx.nd.array(im_info)])
 
     start = time.time()
-    mod.reshape([('data', (1, 3, norm_h, norm_w)), ('im_info', (1, 3))])
+    # mod.reshape([('data', (1, 3, norm_h, norm_w)), ('im_info', (1, 3))])
     mod.forward(batch)
 
     output_names = mod.output_names
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     mod.bind(for_training=False, data_shapes=[('data', (1, 3, 512, 512)), ('im_info', (1, 3))], label_shapes=None, force_rebind=False)
     mod.set_params(arg_params=arg_params, aux_params=aux_params, force_init=False)
 
-    testdir = u'/media/kk/DATA/imdb/南京理工/nj'
+    testdir = u'/mnt/15F1B72E1A7798FD/DK2/plates_det/bt'
     #u'/mnt/15F1B72E1A7798FD/Dataset/2016_01_18_07_01_01'
     #u'/mnt/15F1B72E1A7798FD/Dataset/2015_12_11_03_00_28'
     #u'/home/caizhendong/git/Deformable-ConvNets/data/traffic_sign/train/JPEGImages'

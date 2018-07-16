@@ -31,14 +31,14 @@ def main():
     pprint.pprint(config)
 
     sym_instance = eval(config.symbol + '.' + config.symbol)()
-    sym_deploy_instance = eval(config.symbol + '_deploy.' + config.symbol)()
+    sym_deploy_instance = eval(config.symbol + '.' + config.symbol)()
     if args.rpn:
         sym = sym_instance.get_symbol_rpn(config, is_train=False)
-        sym_deploy = sym_deploy_instance.get_symbol_rpn(config, is_train=False)
+        sym_deploy = sym_deploy_instance.get_symbol_rpn(config, is_train=False, is_merge_bn=True)
     else:
         if config.TEST.HAS_RPN:
             sym = sym_instance.get_symbol(config, is_train=False)
-            sym_deploy = sym_deploy_instance.get_symbol(config, is_train=False)
+            sym_deploy = sym_deploy_instance.get_symbol(config, is_train=False, is_merge_bn=True)
         else:
             sym = sym_instance.get_symbol_rcnn(config, is_train=False)
 
