@@ -1324,10 +1324,7 @@ class resnet_v1_101_fpn_rcnn(Symbol):
         # config alias for convenient
         num_classes = cfg.dataset.NUM_CLASSES
         num_reg_classes = (2 if cfg.CLASS_AGNOSTIC else num_classes)
-        f = open("num_reg_classes.txt",'w')
-        f.writelines(str(num_classes))
-        f.writelines(str(num_reg_classes))
-        f.close()
+
         data = mx.sym.Variable(name="data")
         im_info = mx.sym.Variable(name="im_info")
 

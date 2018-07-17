@@ -177,10 +177,7 @@ def sample_rois(rois, fg_rois_per_image, rois_per_image, num_classes, cfg,
             targets = ((targets - np.array(cfg.TRAIN.BBOX_MEANS))
                        / np.array(cfg.TRAIN.BBOX_STDS))
         bbox_target_data = np.hstack((labels[:, np.newaxis], targets))
-    np.savetxt("bbox_target_data.txt",bbox_target_data)
-    f = open("num_class.txt",'w')
-    f.writelines(str(num_classes))
-    f.close()
+
     bbox_targets, bbox_weights = \
         expand_bbox_regression_targets(bbox_target_data, num_classes, cfg)
 

@@ -54,9 +54,7 @@ class ProposalTargetOperator(mx.operator.CustomOp):
         all_rois = np.vstack((all_rois, np.hstack((zeros, gt_boxes[:, :-1]))))
         # Sanity check: single batch only
         assert np.all(all_rois[:, 0] == 0), 'Only single item batches are supported'
-        f = open("self._num_classes.txt",'w')
-        f.writelines(str(self._num_classes))
-        f.close()
+
         rois, labels, bbox_targets, bbox_weights = \
             sample_rois(all_rois, fg_rois_per_image, rois_per_image, self._num_classes, self._cfg, gt_boxes=gt_boxes)
 
